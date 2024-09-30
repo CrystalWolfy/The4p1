@@ -1,0 +1,107 @@
+-- Exploit Simulation Script for Testing Anti-Cheat
+-- Only use this locally for testing purposes in your own game!
+
+-- Create a basic custom GUI that an exploiter might inject
+local function createExploitUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    local Frame = Instance.new("Frame")
+    local TeleportButton = Instance.new("TextButton")
+    local CollectButton = Instance.new("TextButton")
+    local AttackButton = Instance.new("TextButton")
+    
+    -- Parent the UI to the CoreGui (exploiters inject GUI into CoreGui)
+    ScreenGui.Parent = game.CoreGui
+    
+    -- Set up the frame
+    Frame.Parent = ScreenGui
+    Frame.Size = UDim2.new(0, 300, 0, 300)
+    Frame.Position = UDim2.new(0.5, -150, 0.5, -150)
+    Frame.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+
+    -- Teleport Button
+    TeleportButton.Parent = Frame
+    TeleportButton.Size = UDim2.new(0, 200, 0, 50)
+    TeleportButton.Position = UDim2.new(0, 50, 0, 50)
+    TeleportButton.Text = "Teleport"
+    TeleportButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    
+    -- Item Collection Button
+    CollectButton.Parent = Frame
+    CollectButton.Size = UDim2.new(0, 200, 0, 50)
+    CollectButton.Position = UDim2.new(0, 50, 0, 120)
+    CollectButton.Text = "Collect Items"
+    CollectButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+    
+    -- Rapid Attack Button
+    AttackButton.Parent = Frame
+    AttackButton.Size = UDim2.new(0, 200, 0, 50)
+    AttackButton.Position = UDim2.new(0, 50, 0, 190)
+    AttackButton.Text = "Rapid Attack"
+    AttackButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    
+    -- Return the buttons to hook up later
+    return TeleportButton, CollectButton, AttackButton
+end
+
+-- Function to teleport the player
+local function teleportPlayer()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        local teleportLocation = Vector3.new(0, 10, 0) -- Change to desired coordinates
+        character:SetPrimaryPartCFrame(CFrame.new(teleportLocation))
+        print("Player teleported to the location!")
+    end
+end
+
+-- Function to auto-collect items
+local function autoCollectItems()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local collectionRange = 15 -- Exploiters might set this to a larger number
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        for _, item in pairs(workspace.Items:GetChildren()) do
+            local distance = (item.Position - character.HumanoidRootPart.Position).Magnitude
+            if distance <= collectionRange then
+                item:Destroy() -- Simulate item collection
+                print("Item collected!")
+            else
+                print("Item too far to collect.")
+            end
+        end
+    end
+end
+
+-- Function to rapidly attack
+local function rapidAttack()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid then
+        for i = 1, 10 do -- Simulate 10 rapid attacks
+            humanoid:TakeDamage(10) -- This would normally attack NPCs
+            print("Rapid attack triggered!")
+            wait(0.1) -- Rapid attacks every 0.1 seconds
+        end
+    end
+end
+
+-- Create the UI and connect the buttons to the exploit actions
+local TeleportButton, CollectButton, AttackButton = createExploitUI()
+
+-- Teleport action
+TeleportButton.MouseButton1Click:Connect(function()
+    teleportPlayer()
+end)
+
+-- Auto-collect action
+CollectButton.MouseButton1Click:Connect(function()
+    autoCollectItems()
+end)
+
+-- Rapid attack action
+AttackButton.MouseButton1Click:Connect(function()
+    rapidAttack()
+end)
+
+-- End of script
