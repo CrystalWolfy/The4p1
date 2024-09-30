@@ -1,0 +1,277 @@
+-- AutoSBR Script
+local AutoSBR = {}
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local PrimaryPart = Character.PrimaryPart
+local Horse = nil -- Placeholder for Horse object
+local CameraValue = Instance.new("ObjectValue")
+local ScriptSettings = {
+    teleports = {
+        ["Normal Hide"] = CFrame.new(0, 0, 0),
+        ["Stage 1 Barrier"] = CFrame.new(0, 0, 0),
+        ["Stage 2 Barrier"] = CFrame.new(0, 0, 0),
+        ["Stage 3 Barrier"] = CFrame.new(0, 0, 0),
+        ["Stage 4 Barrier"] = CFrame.new(0, 0, 0),
+        ["Finish Hide"] = CFrame.new(0, 0, 0),
+        ["Finish Line Barrier"] = CFrame.new(0, 0, 0),
+    },
+    sbr = {
+        Stage1TPDelay = 1,
+        Stage2TPDelay = 1,
+        Stage3TPDelay = 1,
+        Stage4TPDelay = 1,
+        LastStageTPDelay = 1,
+        WinHideDelay = 1,
+        AllStageHideDelay = 1,
+    },
+    horse = {
+        FlySpeed = 50,
+        WalkSpeed = 16,
+    },
+    stands = {
+        TargetPlayer = "TargetPlayerName",
+        PredictionStrength = 6,
+        StandAttachDistance = 10,
+        Barrage = false,
+        Punch = false,
+        HeavyPunch = false,
+        Finisher = false,
+        AllPlayers = {},
+    },
+}
+
+-- Teleport Functionality
+function AutoSBR:TeleportToBarrier(stage)
+    local barrierCFrame = ScriptSettings.teleports[stage]
+    if barrierCFrame then
+        PrimaryPart.CFrame = barrierCFrame
+        Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+    end
+end
+
+function AutoSBR:StartAutoSBR()
+    if Character then
+        -- Stage 1
+        AutoSBR:TeleportToBarrier("Normal Hide")
+        repeat task.wait() until Workspace.Barrier:FindFirstChild("StartBarrier") == nil
+        task.wait(ScriptSettings.sbr.Stage1TPDelay)
+        AutoSBR:TeleportToBarrier("Stage 1 Barrier")
+        task.wait(ScriptSettings.sbr.AllStageHideDelay)
+
+        -- Stage 2
+        AutoSBR:TeleportToBarrier("Normal Hide")
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("1") == nil
+        task.wait(ScriptSettings.sbr.Stage2TPDelay)
+        AutoSBR:TeleportToBarrier("Stage 2 Barrier")
+        task.wait(ScriptSettings.sbr.AllStageHideDelay)
+
+        -- Stage 3
+        AutoSBR:TeleportToBarrier("Normal Hide")
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("2") == nil
+        task.wait(ScriptSettings.sbr.Stage3TPDelay)
+        AutoSBR:TeleportToBarrier("Stage 3 Barrier")
+        task.wait(ScriptSettings.sbr.AllStageHideDelay)
+
+        -- Stage 4
+        AutoSBR:TeleportToBarrier("Normal Hide")
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("3") == nil
+        task.wait(ScriptSettings.sbr.Stage4TPDelay)
+        AutoSBR:TeleportToBarrier("Stage 4 Barrier")
+        task.wait(ScriptSettings.sbr.AllStageHideDelay)
+
+        -- Finish Line
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("4") == nil
+        task.wait(ScriptSettings.sbr.LastStageTPDelay)
+        AutoSBR:TeleportToBarrier("Finish Line Barrier")
+        task.wait(ScriptSettings.sbr.WinHideDelay)
+        AutoSBR:TeleportToBarrier("Finish Hide")
+    end
+end
+
+-- Horse Functionality
+function AutoSBR:StartAutoSBRHorse()
+    if Horse then
+        repeat task.wait() until Workspace:FindFirstChild("StartBarrier") == nil
+        task.wait(ScriptSettings.sbr.Stage1TPDelay)
+        Horse.HumanoidRootPart.CFrame = ScriptSettings.teleports["Stage 1 Barrier"]
+
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("1") == nil
+        task.wait(ScriptSettings.sbr.Stage2TPDelay)
+        Horse.HumanoidRootPart.CFrame = ScriptSettings.teleports["Stage 2 Barrier"]
+
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("2") == nil
+        task.wait(ScriptSettings.sbr.Stage3TPDelay)
+        Horse.HumanoidRootPart.CFrame = ScriptSettings.teleports["Stage 3 Barrier"]
+
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("3") == nil
+        task.wait(ScriptSettings.sbr.Stage4TPDelay)
+        Horse.HumanoidRootPart.CFrame = ScriptSettings.teleports["Stage 4 Barrier"]
+
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("4") == nil
+        task.wait(ScriptSettings.sbr.LastStageTPDelay)
+        Horse.HumanoidRootPart.CFrame = ScriptSettings.teleports["Finish Line Barrier"]
+    end
+end
+
+-- Fly Functionality
+function AutoSBR:Fly()
+    local KeysPressed = {
+        W = 0,
+        A = 0,
+        S = 0,
+        D = 0,
+    }
+    local KeyInfo = {
+        W = { Operator = "+", Direction = "LookVector" },
+        A = { Operator = "-", Direction = "RightVector" },
+        S = { Operator = "-", Direction = "LookVector" },
+        D = { Operator = "+", Direction = "RightVector" },
+    }
+
+    UserInputService.InputBegan:Connect(function(Input, Typing)
+        if Typing then return end
+        local KeyString = Input.KeyCode.Name
+        if KeysPressed[KeyString] then
+            KeysPressed[KeyString] = 1
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(Input, Typing)
+        if Typing then return end
+        local KeyString = Input.KeyCode.Name
+        if KeysPressed[KeyString] then
+            KeysPressed[KeyString] = 0
+        end
+    end)
+
+    RunService.RenderStepped:Connect(function()
+        if not Horse then return end
+        Horse.Humanoid.WalkSpeed = 0
+        Horse.Humanoid.JumpPower = 0
+
+        Horse.HumanoidRootPart.CFrame = CFrame.new(Horse.HumanoidRootPart.Position, Horse.HumanoidRootPart.Position + Workspace.CurrentCamera.CFrame.LookVector)
+        local HorseMass = GetMass(Horse)
+
+        local Velocity = Vector3.new(0, HorseMass / Workspace.Gravity, 0)
+        for Key, Value in pairs(KeysPressed) do
+            if Value == 1 then
+                Velocity = Math(KeyInfo[Key].Operator, Velocity, Horse.HumanoidRootPart.CFrame[KeyInfo[Key].Direction] * ScriptSettings.horse.FlySpeed * HorseMass)
+            end
+        end
+
+        Horse.HumanoidRootPart.Velocity = Velocity
+    end)
+end
+
+function AutoSBR:UseMove(move)
+    -- Implement move usage logic here
+end
+
+-- Attach Yourself to Player Functionality
+function AutoSBR:AttachToPlayer()
+    local AttachLoop
+    local OldPos
+    local EnemyChar = Workspace.Living:FindFirstChild(ScriptSettings.stands.TargetPlayer)
+
+    if not EnemyChar then return end
+    OldPos = PrimaryPart.CFrame
+
+    CameraValue.Value = EnemyChar.Head
+
+    AttachLoop = RunService.RenderStepped:Connect(function()
+        if not Workspace.Living:FindFirstChild(ScriptSettings.stands.TargetPlayer) then
+            AttachLoop:Disconnect()
+            -- Implement summon stand logic
+            if ScriptSettings.teleports["Normal Hide"] then
+                PrimaryPart.CFrame = ScriptSettings.teleports["Normal Hide"]
+                Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+            else
+                PrimaryPart.CFrame = OldPos
+                Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                CameraValue.Value = nil
+            end
+            return
+        end
+
+        local Prediction = EnemyChar.PrimaryPart.Velocity * (ScriptSettings.stands.PredictionStrength / 10)
+        -- Implement logic for attaching to player and predicting movement
+    end)
+end
+
+-- Teleport and Spectate Functionality
+function AutoSBR:TeleportToPlayer()
+    local Target = Workspace.Living:FindFirstChild(ScriptSettings.stands.TargetPlayer)
+    if Target and Target.PrimaryPart then
+        PrimaryPart.CFrame = Target.PrimaryPart.CFrame
+        Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+    end
+end
+
+function AutoSBR:StartSpectatingPlayer(state)
+    local Target = Workspace.Living:FindFirstChild(ScriptSettings.stands.TargetPlayer)
+    if state then
+        if Target and Target.Head then
+            CameraValue.Value = Target.Head
+        end
+    else
+        CameraValue.Value = nil
+    end
+end
+
+-- Update Functionality for Player List
+function AutoSBR:UpdatePlayerList()
+    ScriptSettings.stands.AllPlayers = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        table.insert(ScriptSettings.stands.AllPlayers, player.Name)
+    end
+end
+
+-- Auto Barrage Logic
+function AutoSBR:AutoBarrage()
+    local EnemyChar = Workspace.Living:FindFirstChild(ScriptSettings.stands.TargetPlayer)
+    if EnemyChar then
+        if ScriptSettings.stands.Barrage then
+            AutoSBR:UseMove(Enum.KeyCode.E)
+        end
+        if ScriptSettings.stands.Punch then
+            AutoSBR:UseMove("m1")
+        end
+        if EnemyChar.Blocking_Capacity.Value == 0 then
+            if ScriptSettings.stands.Finisher then
+                AutoSBR:UseMove(Enum.KeyCode.R)
+            end
+            if ScriptSettings.stands.HeavyPunch then
+                AutoSBR:UseMove("m2")
+            end
+        end
+    end
+end
+
+-- Character Setup
+Character.ChildAdded:Connect(function(child)
+    if child:IsA("BodyPosition") or child:IsA("BodyVelocity") then
+        child:Destroy()
+    end
+end)
+
+-- Keybinds and UI Toggle
+UserInputService.InputBegan:Connect(function(input, typing)
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        -- Implement UI toggle logic
+    end
+end)
+
+-- Initialize AutoSBR Script
+AutoSBR:StartAutoSBR()
+AutoSBR:StartAutoSBRHorse()
+AutoSBR:Fly()
+AutoSBR:UpdatePlayerList()
+Players.PlayerAdded:Connect(AutoSBR.UpdatePlayerList)
+Players.PlayerRemoving:Connect(AutoSBR.UpdatePlayerList)
+
+-- Notify when the script is executed
+SendWebhook("Script executed!!, game place id: " .. tostring(game.PlaceId))
