@@ -1,0 +1,128 @@
+-- Dependencies
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
+
+-- Global Variables
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local PrimaryPart = Character:WaitForChild("HumanoidRootPart")
+local Horse = nil -- Replace with your horse instance as necessary
+local InfTick = 0
+local InfDash = nil
+local DashCooldown = 0.5 -- Cooldown for dashing
+local LastDashTime = 0
+
+-- Script Settings (Adjust as necessary)
+local ScriptSettings = {
+    ["DP"] = 1000, -- Dash Power
+    ["InfDelay"] = 0.1, -- Dash Delay
+    teleports = {
+        ["Stage 1 Barrier"] = CFrame.new(0, 0, 0), -- Add actual positions here
+        ["Stage 2 Barrier"] = CFrame.new(0, 0, 0),
+        ["Stage 3 Barrier"] = CFrame.new(0, 0, 0),
+        ["Stage 4 Barrier"] = CFrame.new(0, 0, 0),
+        ["Finish Line Barrier"] = CFrame.new(0, 0, 0),
+        ["Normal Hide"] = CFrame.new(0, 0, 0)
+    }
+}
+
+-- Function to Teleport to a Specific CFrame
+local function TeleportTo(cframe)
+    PrimaryPart.CFrame = cframe
+    Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+end
+
+-- Function to Handle Dashing
+local function ExecuteDash()
+    if not Character then return end
+    local Dir, Anim_ = Get_Stroke() -- Define this function according to your requirements
+    
+    local DashAnimation = Instance.new("Animation")
+    DashAnimation.AnimationId = "rbxassetid://" .. Anim_
+    local Anim2 = Character.Humanoid:LoadAnimation(DashAnimation)
+    Anim2:Play()
+    
+    local DashVelocity = Instance.new("BodyVelocity", Character.HumanoidRootPart)
+    DashVelocity.Name = "DashVelocity"
+    DashVelocity.Velocity = (Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(Dir), 0)).LookVector * ScriptSettings["DP"]
+    DashVelocity.MaxForce = Vector3.new(55555, 1000, 55555)
+    
+    Debris:AddItem(DashVelocity, 0.25)
+end
+
+-- Keybind for Infinite Dash
+UserInputService.InputBegan:Connect(function(Input, GameProcessed)
+    if GameProcessed then return end
+    
+    if Input.KeyCode == Enum.KeyCode.LeftAlt and (tick() - LastDashTime) >= ScriptSettings["InfDelay"] then
+        LastDashTime = tick()
+        ExecuteDash()
+    end
+end)
+
+-- Teleport Buttons
+for Name, CFrame in pairs(ScriptSettings.teleports) do
+    local Button = Instance.new("TextButton") -- Adjust UI creation as per your library
+    Button.Text = Name
+    Button.MouseButton1Click:Connect(function()
+        TeleportTo(CFrame)
+    end)
+    -- Add Button to your UI here
+end
+
+-- Infinite Dash Toggle
+local function ToggleInfiniteDash(state)
+    if state then
+        InfDash = RunService.RenderStepped:Connect(function()
+            if not Character then return end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt) then
+                ExecuteDash()
+            end
+        end)
+    else
+        if InfDash then
+            InfDash:Disconnect()
+            InfDash = nil
+        end
+    end
+end
+
+-- Other Features
+local OtherStuff = {} -- Replace with your UI library's section
+
+OtherStuff:NewButton("Delete Stage Barriers", "You can't use auto SBR with this", function()
+    for i = 1, 4 do
+        local barrier = workspace.Barriers:FindFirstChild(tostring(i))
+        if barrier then
+            barrier:Destroy()
+        end
+    end
+end)
+
+OtherStuff:NewToggle("Infinite Dash", "Change Dash Power/Delay", function(state)
+    ToggleInfiniteDash(state)
+end)
+
+OtherStuff:NewSlider("Dash Power", "Adjust the power of the dash", 1000, 50, function(value)
+    ScriptSettings["DP"] = value
+end)
+
+OtherStuff:NewSlider("Dash Delay", "Adjust the delay for dashing", 2, 0.1, function(value)
+    ScriptSettings["InfDelay"] = value
+end)
+
+-- Cleanup Physics Objects
+Character.ChildAdded:Connect(function(child)
+    if child:IsA("BodyPosition") or child:IsA("BodyVelocity") then
+        child:Destroy()
+    end
+end)
+
+-- Send Webhook
+SendWebhook("Script executed!!, game place id: " .. game.PlaceId)
+
+-- Debugging
+warn("SBR Script Loaded Successfully!")
