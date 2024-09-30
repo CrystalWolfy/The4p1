@@ -1,0 +1,190 @@
+-- Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
+-- Variables
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local PrimaryPart = Character.PrimaryPart
+local Horse = Character:FindFirstChild("Horse")
+local Camera = Workspace.CurrentCamera
+local RemoteEvent = ReplicatedStorage:WaitForChild("RemoteEvent") -- Replace with your actual RemoteEvent name
+
+-- ScriptSettings
+local ScriptSettings = {
+    teleports = {
+        ["Normal Hide"] = CFrame.new(0, 0, 0), -- Replace with actual positions
+        ["Stage 1 Barrier"] = CFrame.new(0, 0, 0),
+        ["Stage 2 Barrier"] = CFrame.new(0, 0, 0),
+        ["Stage 3 Barrier"] = CFrame.new(0, 0, 0),
+        ["Stage 4 Barrier"] = CFrame.new(0, 0, 0),
+        ["Finish Line Barrier"] = CFrame.new(0, 0, 0),
+        ["Finish Hide"] = CFrame.new(0, 0, 0)
+    },
+    sbr = {
+        Stage1TPDelay = 1,
+        Stage2TPDelay = 1,
+        Stage3TPDelay = 1,
+        Stage4TPDelay = 1,
+        LastStageTPDelay = 1,
+        AllStageHideDelay = 1,
+        WinHideDelay = 1
+    },
+    horse = {
+        FlySpeed = 50,
+        WalkSpeed = 16
+    },
+    stands = {
+        TargetPlayer = "PlayerName", -- Default target player
+        AllPlayers = {}
+    }
+}
+
+-- Teleport Function
+local function teleportTo(position)
+    if Character and Character:FindFirstChild("HumanoidRootPart") then
+        Character.HumanoidRootPart.CFrame = position
+        Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+    end
+end
+
+-- Auto SBR V1 (Player)
+local function autoSBRPlayer()
+    if Character then
+        teleportTo(ScriptSettings.teleports["Normal Hide"])
+
+        repeat task.wait() until Workspace.Barrier:FindFirstChild("StartBarrier") == nil
+        task.wait(ScriptSettings.sbr.Stage1TPDelay)
+        teleportTo(ScriptSettings.teleports["Stage 1 Barrier"])
+
+        task.wait(ScriptSettings.sbr.AllStageHideDelay)
+        teleportTo(ScriptSettings.teleports["Normal Hide"])
+
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("1") == nil
+        task.wait(ScriptSettings.sbr.Stage2TPDelay)
+        teleportTo(ScriptSettings.teleports["Stage 2 Barrier"])
+
+        task.wait(ScriptSettings.sbr.AllStageHideDelay)
+        teleportTo(ScriptSettings.teleports["Normal Hide"])
+
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("2") == nil
+        task.wait(ScriptSettings.sbr.Stage3TPDelay)
+        teleportTo(ScriptSettings.teleports["Stage 3 Barrier"])
+
+        task.wait(ScriptSettings.sbr.AllStageHideDelay)
+        teleportTo(ScriptSettings.teleports["Normal Hide"])
+
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("3") == nil
+        task.wait(ScriptSettings.sbr.Stage4TPDelay)
+        teleportTo(ScriptSettings.teleports["Stage 4 Barrier"])
+
+        task.wait(ScriptSettings.sbr.AllStageHideDelay)
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("4") == nil
+        task.wait(ScriptSettings.sbr.LastStageTPDelay)
+        teleportTo(ScriptSettings.teleports["Finish Line Barrier"])
+
+        task.wait(ScriptSettings.sbr.WinHideDelay)
+        teleportTo(ScriptSettings.teleports["Finish Hide"])
+    end
+end
+
+-- Auto SBR V2 (Horse)
+local function autoSBRHorse()
+    if Horse then
+        repeat task.wait() until Workspace:FindFirstChild("StartBarrier") == nil
+        task.wait(ScriptSettings.sbr.Stage1TPDelay)
+        teleportTo(ScriptSettings.teleports["Stage 1 Barrier"])
+
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("1") == nil
+        task.wait(ScriptSettings.sbr.Stage2TPDelay)
+        teleportTo(ScriptSettings.teleports["Stage 2 Barrier"])
+
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("2") == nil
+        task.wait(ScriptSettings.sbr.Stage3TPDelay)
+        teleportTo(ScriptSettings.teleports["Stage 3 Barrier"])
+
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("3") == nil
+        task.wait(ScriptSettings.sbr.Stage4TPDelay)
+        teleportTo(ScriptSettings.teleports["Stage 4 Barrier"])
+
+        repeat task.wait() until Workspace.Barriers:FindFirstChild("4") == nil
+        task.wait(ScriptSettings.sbr.LastStageTPDelay)
+        teleportTo(ScriptSettings.teleports["Finish Line Barrier"])
+    end
+end
+
+-- Teleport UI Buttons
+local TeleportUI = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+local TeleportButton = Instance.new("TextButton", TeleportUI)
+TeleportButton.Size = UDim2.new(0, 200, 0, 50)
+TeleportButton.Position = UDim2.new(0.5, -100, 0.5, -25)
+TeleportButton.Text = "Auto SBR Player"
+TeleportButton.MouseButton1Click:Connect(autoSBRPlayer)
+
+local HorseButton = Instance.new("TextButton", TeleportUI)
+HorseButton.Size = UDim2.new(0, 200, 0, 50)
+HorseButton.Position = UDim2.new(0.5, -100, 0.5, 25)
+HorseButton.Text = "Auto SBR Horse"
+HorseButton.MouseButton1Click:Connect(autoSBRHorse)
+
+-- Fly Functionality
+local function flyHorse()
+    if Horse then
+        local KeysPressed = { W = false, A = false, S = false, D = false }
+        local FlySpeed = ScriptSettings.horse.FlySpeed
+        local FlyLoop
+
+        UserInputService.InputBegan:Connect(function(Input, GameProcessed)
+            if GameProcessed then return end
+            if Input.KeyCode == Enum.KeyCode.W then KeysPressed.W = true end
+            if Input.KeyCode == Enum.KeyCode.A then KeysPressed.A = true end
+            if Input.KeyCode == Enum.KeyCode.S then KeysPressed.S = true end
+            if Input.KeyCode == Enum.KeyCode.D then KeysPressed.D = true end
+        end)
+
+        UserInputService.InputEnded:Connect(function(Input, GameProcessed)
+            if GameProcessed then return end
+            if Input.KeyCode == Enum.KeyCode.W then KeysPressed.W = false end
+            if Input.KeyCode == Enum.KeyCode.A then KeysPressed.A = false end
+            if Input.KeyCode == Enum.KeyCode.S then KeysPressed.S = false end
+            if Input.KeyCode == Enum.KeyCode.D then KeysPressed.D = false end
+        end)
+
+        FlyLoop = RunService.RenderStepped:Connect(function()
+            if not Horse or not Horse:FindFirstChild("HumanoidRootPart") then return end
+            local Velocity = Vector3.new(0, Horse:GetMass() / workspace.Gravity, 0)
+
+            if KeysPressed.W then
+                Velocity = Velocity + (Horse.HumanoidRootPart.CFrame.LookVector * FlySpeed)
+            end
+            if KeysPressed.S then
+                Velocity = Velocity - (Horse.HumanoidRootPart.CFrame.LookVector * FlySpeed)
+            end
+            if KeysPressed.A then
+                Velocity = Velocity - (Horse.HumanoidRootPart.CFrame.RightVector * FlySpeed)
+            end
+            if KeysPressed.D then
+                Velocity = Velocity + (Horse.HumanoidRootPart.CFrame.RightVector * FlySpeed)
+            end
+
+            Horse.HumanoidRootPart.Velocity = Velocity
+        end)
+    end
+end
+
+-- Connecting Fly Functionality
+HorseButton.MouseButton1Click:Connect(flyHorse)
+
+-- Cleaning up
+Character.ChildAdded:Connect(function(Child)
+    if Child:IsA("BodyPosition") or Child:IsA("BodyVelocity") then
+        Child:Destroy()
+    end
+end)
+
+-- Debug message
+print("Script executed successfully!")
